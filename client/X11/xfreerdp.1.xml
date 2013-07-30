@@ -79,7 +79,7 @@
         <listitem>
           <para>
             Set the domain used in authentication to
-	     <replaceable class="parameter">domain</replaceable>.
+	    <replaceable class="parameter">domain</replaceable>.
           </para>
         </listitem>
       </varlistentry>
@@ -104,29 +104,38 @@
         <listitem>
           <para>
             Sets the size of the FreeRDP window (and of the remote desktop, when establishing a new connection).
-            <replaceable class="parameter">geometry</replaceable> can have one of the following forms:
-            <itemizedlist>
-              <listitem>
-                <para>
-                  <replaceable class="parameter">W</replaceable>x<replaceable class="parameter">H</replaceable> - 
-                  in this case the resulting window will be of
-                  <replaceable class="parameter">W</replaceable>x<replaceable class="parameter">H</replaceable> pixels.
-                </para>
-              </listitem>
-              <listitem>
-                <para>
-                  <replaceable class="parameter">P</replaceable>% -
-                  in this case the resulting window will be <replaceable class="parameter">P</replaceable>%
-                  of your screen.
-                </para>
-              </listitem>
-              <listitem>
-                <para>
-                  The special keyword <emphasis>workarea</emphasis> -
-                  in this case the resulting window will be of the same size as your workarea.
-                </para>
-              </listitem>
-            </itemizedlist>
+            <replaceable class="parameter">geometry</replaceable> can
+            have one of the following forms:
+	    <variablelist>
+	      <varlistentry>
+		<term>
+                  <replaceable class="parameter">W</replaceable>x<replaceable class="parameter">H</replaceable>
+		</term>
+		<listitem>
+                  <para>
+                    in this case the resulting window will be of
+                    <replaceable class="parameter">W</replaceable>x<replaceable class="parameter">H</replaceable> pixels.
+                  </para>
+		</listitem>
+	      </varlistentry>
+	      <varlistentry>
+		<term><replaceable class="parameter">P</replaceable>%</term>
+		<listitem>
+                  <para>
+                    in this case the resulting window will be <replaceable class="parameter">P</replaceable>%
+                    of your screen.
+                  </para>
+		</listitem>
+	      </varlistentry>
+	      <varlistentry>
+		<term>The special keyword <emphasis>workarea</emphasis></term>
+		<listitem>
+                  <para>
+                    in this case the resulting window will be of the same size as your workarea.
+                  </para>
+		</listitem>
+	      </varlistentry>
+            </variablelist>
           </para>
         </listitem>
       </varlistentry>
@@ -211,57 +220,93 @@
           <para>
             Set the experience performance flags.
             <replaceable class="parameter">flag</replaceable> can be one of:
-            <itemizedlist>
-              <listitem>
-                <para>
-                  m - (modem): Equivalent to 15.
-                </para>
-              </listitem>
-              <listitem>
-                <para>
-                  b - (broadband): Equivalent to 1.
-                </para>
-              </listitem>
-              <listitem>
-                <para>
-                  l - (lan): Equivalent to 0.
-                </para>
-              </listitem>
-              <listitem>
-                <para>
-                  <replaceable class="parameter">num</replaceable> - A hexadecimal number that
-                  represents a bit-mask, were numbers mean the following
-                  <footnote><para>Taken from <ulink url="http://msdn.microsoft.com/en-us/library/cc240476%28v=prot.10%29.aspx">
-                  MS-RDPBCGR Section 2.2.1.11.1.1.1 - Extended Info Packet</ulink></para></footnote>:
-                  <itemizedlist>
-                    <listitem>
-                      <para>1: Disable desktop wallpaper.</para>
-                    </listitem>
-                    <listitem>
-                      <para>2: Disable full-window drag (only the window outline is displayed when the window is moved).</para>
-                    </listitem>
-                    <listitem>
-                      <para>4: Disable menu animations.</para>
-                    </listitem>
-                    <listitem>
-                      <para>8: Disable user interface themes.</para>
-                    </listitem>
-                    <listitem>
-                      <para>20: Disable mouse cursor shadows.</para>
-                    </listitem>
-                    <listitem>
-                      <para>40: Disable cursor blinking.</para>
-                    </listitem>
-                    <listitem>
-                      <para>80: Enable font smoothing.</para>
-                    </listitem>
-                    <listitem>
-                      <para>100: Enable Desktop Composition.</para>
-                    </listitem>
-                  </itemizedlist>
-                </para>
-              </listitem>
-            </itemizedlist>
+            <variablelist>
+              <varlistentry>
+		<term>m - (modem)</term>
+		<listitem>
+                  <para>
+                    Equivalent to 15.
+                  </para>
+		</listitem>
+	      </varlistentry>
+              <varlistentry>
+		<term>b - (broadband)</term>
+		<listitem>
+                  <para>
+                    Equivalent to 1.
+                  </para>
+		</listitem>
+	      </varlistentry>
+              <varlistentry>
+		<term>l - (lan)</term>
+		<listitem>
+                  <para>
+		    Equivalent to 0.                  
+                  </para>
+		</listitem>
+	      </varlistentry>
+              <varlistentry>
+		<term><replaceable class="parameter">num</replaceable></term>
+		<listitem>
+                  <para>
+                    A hexadecimal number that
+                    represents a bit-mask, were numbers mean the following
+                    <footnote><para>Taken from <ulink url="http://msdn.microsoft.com/en-us/library/cc240476%28v=prot.10%29.aspx">
+			  MS-RDPBCGR Section 2.2.1.11.1.1.1 - Extended Info Packet</ulink></para></footnote>:
+                    <variablelist>
+		      <varlistentry>
+			<term>1</term>
+			<listitem>
+			  <para>Disable desktop wallpaper.</para>
+			</listitem>
+		      </varlistentry>
+                      <varlistentry>
+			<term>2</term>
+			<listitem>
+			  <para>Disable full-window drag (only the window outline is displayed when the window is moved).</para>
+			</listitem>
+		      </varlistentry>
+                      <varlistentry>
+			<term>4</term>
+			<listitem>
+			  <para>Disable menu animations.</para>
+			</listitem>
+		      </varlistentry>
+                      <varlistentry>
+			<term>8</term>
+			<listitem>
+			  <para>Disable user interface themes.</para>
+			</listitem>
+		      </varlistentry>
+                      <varlistentry>
+			<term>20</term>
+			<listitem>
+			  <para>Disable mouse cursor shadows.</para>
+			</listitem>
+		      </varlistentry>
+                      <varlistentry>
+			<term>40</term>
+			<listitem>
+			  <para>Disable cursor blinking.</para>
+			</listitem>
+		      </varlistentry>
+                      <varlistentry>
+			<term>80</term>
+			<listitem>
+			  <para>Enable font smoothing.</para>
+			</listitem>
+		      </varlistentry>
+                      <varlistentry>
+			<term>100</term>
+			<listitem>
+			  <para>Enable Desktop Composition.</para>
+			</listitem>
+		      </varlistentry>
+                    </variablelist>
+                  </para>
+		</listitem>
+	      </varlistentry>
+            </variablelist>
           </para>
         </listitem>
       </varlistentry>
@@ -300,8 +345,8 @@
         <listitem>
           <para>
             Only authenticates. This is useful to test your credentials (username and password).
-						Returns status code 0 if the client can connect. Requires a username,
-						password and connection host at the command line.
+	    Returns status code 0 if the client can connect. Requires a username,
+	    password and connection host at the command line.
           </para>
         </listitem>
       </varlistentry>
@@ -351,9 +396,9 @@
         <term>--from-stdin</term>
         <listitem>
           <para>Prompts for unspecified arguments -u username, -p
-          password, -d domain and connection host.  This is useful to
-          hide arguments from ps. Also useful for scripts that will
-          feed these arguments to the client via (what else?) stdin.
+            password, -d domain and connection host.  This is useful to
+            hide arguments from ps. Also useful for scripts that will
+            feed these arguments to the client via (what else?) stdin.
           </para>
         </listitem>
       </varlistentry>
@@ -473,8 +518,7 @@
         <term>--ntlm <replaceable class="parameter">version</replaceable></term>
         <listitem>
           <para>
-            force NTLM protocol version to be <replaceable
-	    class="parameter">version</replaceable>, which can be one of 1 or 2.
+            force NTLM protocol version to be <replaceable class="parameter">version</replaceable>, which can be one of 1 or 2.
           </para>
         </listitem>
       </varlistentry>
@@ -511,14 +555,14 @@
         </listitem>
       </varlistentry>
       <varlistentry>
-      <term>--version</term>
-      <listitem>
-	<para>
+	<term>--version</term>
+	<listitem>
+	  <para>
             Print version information.
           </para>
-      </listitem>
-    </varlistentry>
-    <varlistentry>
+	</listitem>
+      </varlistentry>
+      <varlistentry>
         <term>--disable-wallpaper</term>
         <listitem>
           <para>
