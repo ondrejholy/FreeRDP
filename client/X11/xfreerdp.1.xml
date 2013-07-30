@@ -22,7 +22,7 @@
       <date>2011-08-27</date>
     </refsynopsisdivinfo>
     <para>
-      <command>xfreerdp</command> [options] server[:port] [[options] server[:port] …]
+      <command>xfreerdp</command> [options] server[:port]
     </para>
   </refsynopsisdiv>
   <refsect1>
