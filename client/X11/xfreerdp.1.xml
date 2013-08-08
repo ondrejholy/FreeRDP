@@ -518,7 +518,7 @@
         <term>--ntlm <replaceable class="parameter">version</replaceable></term>
         <listitem>
           <para>
-            force NTLM protocol version to be <replaceable class="parameter">version</replaceable>, which can be one of 1 or 2.
+            Force NTLM protocol version to be <replaceable class="parameter">version</replaceable>, which can be one of 1 or 2.
           </para>
         </listitem>
       </varlistentry>
@@ -526,7 +526,7 @@
         <term>--sec <replaceable class="parameter">proto</replaceable></term>
         <listitem>
           <para>
-            force protocol security. <replaceable class="parameter">proto</replaceable> can be one of rdp, tls or nla.
+            Force protocol security. <replaceable class="parameter">proto</replaceable> can be one of rdp, tls or nla.
           </para>
         </listitem>
       </varlistentry>
