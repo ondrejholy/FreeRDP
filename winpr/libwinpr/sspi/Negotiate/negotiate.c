@@ -31,6 +31,11 @@
 extern const SecurityFunctionTableA NTLM_SecurityFunctionTableA;
 extern const SecurityFunctionTableW NTLM_SecurityFunctionTableW;
 
+#ifdef WITH_GSSAPI
+extern const SecurityFunctionTableA KERBEROS_SecurityFunctionTableA;
+extern const SecurityFunctionTableW KERBEROS_SecurityFunctionTableW;
+#endif
+
 char* NEGOTIATE_PACKAGE_NAME = "Negotiate";
 
 NEGOTIATE_CONTEXT* negotiate_ContextNew()
@@ -47,8 +52,13 @@ NEGOTIATE_CONTEXT* negotiate_ContextNew()
 
 	SecInvalidateHandle(&(context->SubContext));
 
+#ifdef WITH_GSSAPI
+	context->sspiA = (SecurityFunctionTableA*) &KERBEROS_SecurityFunctionTableA;
+	context->sspiW = (SecurityFunctionTableW*) &KERBEROS_SecurityFunctionTableW;
+#else
 	context->sspiA = (SecurityFunctionTableA*) &NTLM_SecurityFunctionTableA;
 	context->sspiW = (SecurityFunctionTableW*) &NTLM_SecurityFunctionTableW;
+#endif
 
 	return context;
 }

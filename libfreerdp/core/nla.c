@@ -353,8 +353,12 @@ int nla_client_recv(rdpNla* nla)
 			nla_encrypt_public_key_echo(nla);
 		}
 
+		/* negoToken is optional, depending on the SSP, outputBuffer can be
+			empty, for now comment out this check */
+		/*
 		if (nla->outputBuffer.cbBuffer < 1)
 			return -1;
+		*/
 
 		nla->negoToken.pvBuffer = nla->outputBuffer.pvBuffer;
 		nla->negoToken.cbBuffer = nla->outputBuffer.cbBuffer;
@@ -725,11 +729,11 @@ SECURITY_STATUS nla_encrypt_public_key_echo(rdpNla* nla)
 	public_key_length = nla->PublicKey.cbBuffer;
 	Buffers[0].BufferType = SECBUFFER_TOKEN; /* Signature */
 	Buffers[1].BufferType = SECBUFFER_DATA; /* TLS Public Key */
-	sspi_SecBufferAlloc(&nla->pubKeyAuth, nla->ContextSizes.cbMaxSignature + public_key_length);
-	Buffers[0].cbBuffer = nla->ContextSizes.cbMaxSignature;
+	sspi_SecBufferAlloc(&nla->pubKeyAuth, nla->ContextSizes.cbSecurityTrailer + public_key_length + nla->ContextSizes.cbBlockSize);
+	Buffers[0].cbBuffer = nla->ContextSizes.cbSecurityTrailer;
 	Buffers[0].pvBuffer = nla->pubKeyAuth.pvBuffer;
 	Buffers[1].cbBuffer = public_key_length;
-	Buffers[1].pvBuffer = ((BYTE*) nla->pubKeyAuth.pvBuffer) + nla->ContextSizes.cbMaxSignature;
+	Buffers[1].pvBuffer = ((BYTE*) nla->pubKeyAuth.pvBuffer) + nla->ContextSizes.cbSecurityTrailer;
 	CopyMemory(Buffers[1].pvBuffer, nla->PublicKey.pvBuffer, Buffers[1].cbBuffer);
 
 	if (nla->server)
@@ -742,6 +746,8 @@ SECURITY_STATUS nla_encrypt_public_key_echo(rdpNla* nla)
 	Message.ulVersion = SECBUFFER_VERSION;
 	Message.pBuffers = (PSecBuffer) &Buffers;
 	status = nla->table->EncryptMessage(&nla->context, 0, &Message, nla->sendSeqNum++);
+
+	nla->pubKeyAuth.cbBuffer = Buffers[1].cbBuffer + Buffers[0].cbBuffer + nla->ContextSizes.cbBlockSize;
 
 	if (status != SEC_E_OK)
 	{
@@ -764,7 +770,7 @@ SECURITY_STATUS nla_decrypt_public_key_echo(rdpNla* nla)
 	SecBufferDesc Message;
 	SECURITY_STATUS status;
 
-	if ((nla->PublicKey.cbBuffer + nla->ContextSizes.cbMaxSignature) != nla->pubKeyAuth.cbBuffer)
+	if ((nla->PublicKey.cbBuffer + nla->ContextSizes.cbSecurityTrailer + nla->ContextSizes.cbBlockSize) != nla->pubKeyAuth.cbBuffer)
 	{
 		WLog_ERR(TAG, "unexpected pubKeyAuth buffer size: %d", (int) nla->pubKeyAuth.cbBuffer);
 		return SEC_E_INVALID_TOKEN;
@@ -780,10 +786,11 @@ SECURITY_STATUS nla_decrypt_public_key_echo(rdpNla* nla)
 	public_key_length = nla->PublicKey.cbBuffer;
 	Buffers[0].BufferType = SECBUFFER_TOKEN; /* Signature */
 	Buffers[1].BufferType = SECBUFFER_DATA; /* Encrypted TLS Public Key */
-	Buffers[0].cbBuffer = nla->ContextSizes.cbMaxSignature;
+	Buffers[0].cbBuffer = nla->ContextSizes.cbSecurityTrailer;
 	Buffers[0].pvBuffer = buffer;
-	Buffers[1].cbBuffer = length - nla->ContextSizes.cbMaxSignature;
-	Buffers[1].pvBuffer = buffer + nla->ContextSizes.cbMaxSignature;
+	Buffers[1].cbBuffer = length - nla->ContextSizes.cbSecurityTrailer;
+	Buffers[1].pvBuffer = buffer + nla->ContextSizes.cbSecurityTrailer;
+
 	Message.cBuffers = 2;
 	Message.ulVersion = SECBUFFER_VERSION;
 	Message.pBuffers = (PSecBuffer) &Buffers;
@@ -982,8 +989,8 @@ SECURITY_STATUS nla_encrypt_ts_credentials(rdpNla* nla)
 
 	Buffers[0].BufferType = SECBUFFER_TOKEN; /* Signature */
 	Buffers[1].BufferType = SECBUFFER_DATA; /* TSCredentials */
-	sspi_SecBufferAlloc(&nla->authInfo, nla->ContextSizes.cbMaxSignature + nla->tsCredentials.cbBuffer);
-	Buffers[0].cbBuffer = nla->ContextSizes.cbMaxSignature;
+	sspi_SecBufferAlloc(&nla->authInfo, nla->ContextSizes.cbSecurityTrailer + nla->tsCredentials.cbBuffer+ nla->ContextSizes.cbBlockSize);
+	Buffers[0].cbBuffer = nla->ContextSizes.cbSecurityTrailer;
 	Buffers[0].pvBuffer = nla->authInfo.pvBuffer;
 	ZeroMemory(Buffers[0].pvBuffer, Buffers[0].cbBuffer);
 	Buffers[1].cbBuffer = nla->tsCredentials.cbBuffer;
