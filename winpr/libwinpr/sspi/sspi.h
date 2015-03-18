@@ -83,6 +83,7 @@ enum SecurityFunctionTableIndex
 	SetContextAttributesIndex = 28
 };
 
+#include "sspi_gss.h"
 #include "sspi_winpr.h"
 
 #endif /* WINPR_SSPI_PRIVATE_H */

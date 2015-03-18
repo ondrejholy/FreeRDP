@@ -2,6 +2,7 @@
  * FreeRDP: A Remote Desktop Protocol Implementation
  * Generic Security Service Application Program Interface (GSSAPI)
  *
+ * Copyright 2015 ANSSI, Author Thomas Calderon
  * Copyright 2015 Marc-Andre Moreau <marcandre.moreau@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

@@ -2,6 +2,7 @@
  * FreeRDP: A Remote Desktop Protocol Implementation
  * Generic Security Service Application Program Interface (GSSAPI)
  *
+ * Copyright 2015 ANSSI, Author Thomas Calderon
  * Copyright 2015 Marc-Andre Moreau <marcandre.moreau@gmail.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -769,8 +770,8 @@ int sspi_GssApiInit()
 	SSPI_GSSAPI_LOAD_PROC(inquire_cred);
 	SSPI_GSSAPI_LOAD_PROC(inquire_context);
 	SSPI_GSSAPI_LOAD_PROC(wrap_size_limit);
-	SSPI_GSSAPI_LOAD_PROC(import_name_object);
-	SSPI_GSSAPI_LOAD_PROC(export_name_object);
+	//SSPI_GSSAPI_LOAD_PROC(import_name_object);
+	//SSPI_GSSAPI_LOAD_PROC(export_name_object);
 	SSPI_GSSAPI_LOAD_PROC(add_cred);
 	SSPI_GSSAPI_LOAD_PROC(inquire_cred_by_mech);
 	SSPI_GSSAPI_LOAD_PROC(export_sec_context);

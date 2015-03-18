@@ -25,25 +25,23 @@
 
 #include "../sspi.h"
 #include "../../log.h"
-#define TAG WINPR_TAG("sspi.Kerberos")
-
-#include <gssapi/gssapi.h>
 
 struct _KRB_CONTEXT
 {
-	SEC_WINNT_AUTH_IDENTITY identity;
 	CtxtHandle context;
-	SSPI_CREDENTIALS *credentials;
+	SSPI_CREDENTIALS* credentials;
+	SEC_WINNT_AUTH_IDENTITY identity;
 
-	//GSSAPI stuff
-	gss_name_t target_name;
-	OM_uint32 major_status, minor_status;
-	OM_uint32 actual_time;
-	gss_cred_id_t cred;
-	gss_ctx_id_t gss_ctx;
+	/* GSSAPI */
+	UINT32 major_status;
+	UINT32 minor_status;
+	UINT32 actual_time;
+	sspi_gss_cred_id_t cred;
+	sspi_gss_ctx_id_t gss_ctx;
+	sspi_gss_name_t target_name;
 };
 typedef struct _KRB_CONTEXT KRB_CONTEXT;
 
-void krb_ContextFree(KRB_CONTEXT * krb_ctx);
+void krb_ContextFree(KRB_CONTEXT* context);
 
 #endif /* FREERDP_SSPI_KERBEROS_PRIVATE_H */

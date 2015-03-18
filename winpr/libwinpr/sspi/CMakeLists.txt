@@ -29,8 +29,6 @@ set(${MODULE_PREFIX}_NTLM_SRCS
 
 if(GSS_FOUND)
 	set(${MODULE_PREFIX}_KERBEROS_SRCS
-		Kerberos/kerberos_gss.c
-		Kerberos/kerberos_gss.h
 		Kerberos/kerberos.c
 		Kerberos/kerberos.h)
 endif()
