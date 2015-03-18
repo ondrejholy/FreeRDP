@@ -27,6 +27,14 @@ set(${MODULE_PREFIX}_NTLM_SRCS
 	NTLM/ntlm.c
 	NTLM/ntlm.h)
 
+if((WITH_GSSAPI) AND (GSS_FOUND))
+set(${MODULE_PREFIX}_KERBEROS_SRCS
+       Kerberos/kerberos_gss.c
+       Kerberos/kerberos_gss.h
+       Kerberos/kerberos.c
+       Kerberos/kerberos.h)
+endif()
+
 set(${MODULE_PREFIX}_NEGOTIATE_SRCS
 	Negotiate/negotiate.c
 	Negotiate/negotiate.h)
@@ -57,8 +65,14 @@ winpr_module_add(${${MODULE_PREFIX}_NTLM_SRCS}
 winpr_include_directory_add(${ZLIB_INCLUDE_DIRS}
 	${OPENSSL_INCLUDE_DIR})
 
+if((WITH_GSSAPI) AND (GSS_FOUND))
+winpr_library_add(${ZLIB_LIBRARIES}
+	${OPENSSL_LIBRARIES}
+	${GSS_LIBRARIES})
+else()
 winpr_library_add(${ZLIB_LIBRARIES}
 	${OPENSSL_LIBRARIES})
+endif()
 
 if(WIN32)
 	winpr_library_add(ws2_32)
