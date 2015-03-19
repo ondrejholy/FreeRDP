@@ -31,12 +31,29 @@
 extern const SecurityFunctionTableA NTLM_SecurityFunctionTableA;
 extern const SecurityFunctionTableW NTLM_SecurityFunctionTableW;
 
-#ifdef WITH_GSSAPI
 extern const SecurityFunctionTableA KERBEROS_SecurityFunctionTableA;
 extern const SecurityFunctionTableW KERBEROS_SecurityFunctionTableW;
-#endif
 
 char* NEGOTIATE_PACKAGE_NAME = "Negotiate";
+
+void negotiate_SetSubPackage(NEGOTIATE_CONTEXT* context, const char* name)
+{
+	if (strcmp(name, "Kerberos") == 0)
+	{
+		context->sspiA = (SecurityFunctionTableA*) &KERBEROS_SecurityFunctionTableA;
+		context->sspiW = (SecurityFunctionTableW*) &KERBEROS_SecurityFunctionTableW;
+		context->kerberos = TRUE;
+	}
+	else
+	{
+		context->sspiA = (SecurityFunctionTableA*) &NTLM_SecurityFunctionTableA;
+		context->sspiW = (SecurityFunctionTableW*) &NTLM_SecurityFunctionTableW;
+		context->kerberos = FALSE;
+	}
+
+	sspi_SecureHandleSetLowerPointer(&(context->SubContext), NULL);
+	sspi_SecureHandleSetUpperPointer(&(context->SubContext), NULL);
+}
 
 NEGOTIATE_CONTEXT* negotiate_ContextNew()
 {
@@ -52,13 +69,7 @@ NEGOTIATE_CONTEXT* negotiate_ContextNew()
 
 	SecInvalidateHandle(&(context->SubContext));
 
-#ifdef WITH_GSSAPI
-	context->sspiA = (SecurityFunctionTableA*) &KERBEROS_SecurityFunctionTableA;
-	context->sspiW = (SecurityFunctionTableW*) &KERBEROS_SecurityFunctionTableW;
-#else
-	context->sspiA = (SecurityFunctionTableA*) &NTLM_SecurityFunctionTableA;
-	context->sspiW = (SecurityFunctionTableW*) &NTLM_SecurityFunctionTableW;
-#endif
+	negotiate_SetSubPackage(context, "Kerberos");
 
 	return context;
 }
@@ -92,9 +103,22 @@ SECURITY_STATUS SEC_ENTRY negotiate_InitializeSecurityContextW(PCredHandle phCre
 		sspi_SecureHandleSetUpperPointer(phNewContext, (void*) NEGOTIATE_PACKAGE_NAME);
 	}
 
+	negotiate_SetSubPackage(context, "Kerberos");
+
 	status = context->sspiW->InitializeSecurityContextW(phCredential, &(context->SubContext),
 		pszTargetName, fContextReq, Reserved1, TargetDataRep, pInput, Reserved2, &(context->SubContext),
 		pOutput, pfContextAttr, ptsExpiry);
+
+	if ((status != SEC_E_OK) && (status != SEC_I_CONTINUE_NEEDED) && context->kerberos)
+	{
+		context->sspiW->DeleteSecurityContext(&(context->SubContext));
+
+		negotiate_SetSubPackage(context, "NTLM");
+
+		status = context->sspiW->InitializeSecurityContextW(phCredential, &(context->SubContext),
+			pszTargetName, fContextReq, Reserved1, TargetDataRep, pInput, Reserved2, &(context->SubContext),
+			pOutput, pfContextAttr, ptsExpiry);
+	}
 
 	return status;
 }
@@ -120,9 +144,22 @@ SECURITY_STATUS SEC_ENTRY negotiate_InitializeSecurityContextA(PCredHandle phCre
 		sspi_SecureHandleSetUpperPointer(phNewContext, (void*) NEGOTIATE_PACKAGE_NAME);
 	}
 
+	negotiate_SetSubPackage(context, "Kerberos");
+
 	status = context->sspiA->InitializeSecurityContextA(phCredential, &(context->SubContext),
 		pszTargetName, fContextReq, Reserved1, TargetDataRep, pInput, Reserved2, &(context->SubContext),
 		pOutput, pfContextAttr, ptsExpiry);
+
+	if ((status != SEC_E_OK) && (status != SEC_I_CONTINUE_NEEDED) && context->kerberos)
+	{
+		context->sspiA->DeleteSecurityContext(&(context->SubContext));
+
+		negotiate_SetSubPackage(context, "NTLM");
+
+		status = context->sspiA->InitializeSecurityContextA(phCredential, &(context->SubContext),
+			pszTargetName, fContextReq, Reserved1, TargetDataRep, pInput, Reserved2, &(context->SubContext),
+			pOutput, pfContextAttr, ptsExpiry);
+	}
 
 	return status;
 }
@@ -146,6 +183,8 @@ SECURITY_STATUS SEC_ENTRY negotiate_AcceptSecurityContext(PCredHandle phCredenti
 		sspi_SecureHandleSetLowerPointer(phNewContext, context);
 		sspi_SecureHandleSetUpperPointer(phNewContext, (void*) NEGOTIATE_PACKAGE_NAME);
 	}
+
+	negotiate_SetSubPackage(context, "NTLM"); /* server-side Kerberos not yet implemented */
 
 	status = context->sspiA->AcceptSecurityContext(phCredential, &(context->SubContext),
 		pInput, fContextReq, TargetDataRep, &(context->SubContext),

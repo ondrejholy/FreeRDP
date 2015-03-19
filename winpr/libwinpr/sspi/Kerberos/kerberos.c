@@ -37,7 +37,7 @@
 
 char* KRB_PACKAGE_NAME = "Kerberos";
 
-static sspi_gss_OID_desc g_SSPI_GSS_C_SPNEGO_KRB5 = { 9, (void *) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };
+static sspi_gss_OID_desc g_SSPI_GSS_C_SPNEGO_KRB5 = { 9, (void*) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };
 sspi_gss_OID SSPI_GSS_C_SPNEGO_KRB5 = &g_SSPI_GSS_C_SPNEGO_KRB5;
 
 KRB_CONTEXT* kerberos_ContextNew()
@@ -60,10 +60,22 @@ KRB_CONTEXT* kerberos_ContextNew()
 
 void kerberos_ContextFree(KRB_CONTEXT* context)
 {
+	UINT32 minor_status;
+
 	if (!context)
 		return;
 
-	/* FIXME: should probably free some GSSAPI stuff */
+	if (context->target_name)
+	{
+		sspi_gss_release_name(&minor_status, context->target_name);
+		context->target_name = NULL;
+	}
+
+	if (context->gss_ctx)
+	{
+		sspi_gss_delete_sec_context(&minor_status, &context->gss_ctx, SSPI_GSS_C_NO_BUFFER);
+		context->gss_ctx = SSPI_GSS_C_NO_CONTEXT;
+	}
 
 	free(context);
 }
@@ -216,11 +228,7 @@ SECURITY_STATUS SEC_ENTRY kerberos_InitializeSecurityContextA(PCredHandle phCred
 				&input_tok, &actual_mech, &output_tok, &actual_services, &(context->actual_time));
 
 		if (SSPI_GSS_ERROR(context->major_status))
-		{
-			WLog_ERR(TAG, "Kerberos: Initialize failed, do you have correct kerberos tgt initialized?");
-			WLog_ERR(TAG, "Kerberos: gss_init_sec_context failed with %d", SSPI_GSS_C_GSS_CODE);
 			return SEC_E_INTERNAL_ERROR;
-		}
 
 		if (context->major_status & SSPI_GSS_S_CONTINUE_NEEDED)
 		{
@@ -268,11 +276,7 @@ SECURITY_STATUS SEC_ENTRY kerberos_InitializeSecurityContextA(PCredHandle phCred
 				&input_tok, &actual_mech, &output_tok, &actual_services, &(context->actual_time));
 
 		if (SSPI_GSS_ERROR(context->major_status))
-		{
-			WLog_ERR(TAG, "Kerberos: Initialize failed, do you have correct kerberos tgt initialized?");
-			WLog_ERR(TAG, "Kerberos: gss_init_sec_context failed with %lu\n", SSPI_GSS_C_GSS_CODE);
 			return SEC_E_INTERNAL_ERROR;
-		}
 
 		if (output_tok.length == 0)
 		{
@@ -288,6 +292,20 @@ SECURITY_STATUS SEC_ENTRY kerberos_InitializeSecurityContextA(PCredHandle phCred
 	}
 
 	return SEC_E_INTERNAL_ERROR;
+}
+
+SECURITY_STATUS SEC_ENTRY kerberos_DeleteSecurityContext(PCtxtHandle phContext)
+{
+	KRB_CONTEXT* context;
+
+	context = (KRB_CONTEXT*) sspi_SecureHandleGetLowerPointer(phContext);
+
+	if (!context)
+		return SEC_E_INVALID_HANDLE;
+
+	kerberos_ContextFree(context);
+
+	return SEC_E_OK;
 }
 
 SECURITY_STATUS SEC_ENTRY kerberos_QueryContextAttributesW(PCtxtHandle phContext, ULONG ulAttribute, void* pBuffer)
@@ -358,10 +376,7 @@ SECURITY_STATUS SEC_ENTRY kerberos_EncryptMessage(PCtxtHandle phContext, ULONG f
 			SSPI_GSS_C_QOP_DEFAULT, &input, &conf_state, &output);
 
 	if (SSPI_GSS_ERROR(major_status))
-	{
-		WLog_ERR(TAG, "error: gss_wrap failed");
 		return SEC_E_INTERNAL_ERROR;
-	}
 
 	if (conf_state == 0)
 	{
@@ -414,10 +429,7 @@ SECURITY_STATUS SEC_ENTRY kerberos_DecryptMessage(PCtxtHandle phContext,
 	major_status = sspi_gss_unwrap(&minor_status, context->gss_ctx, &input, &output, &conf_state, NULL);
 
 	if (SSPI_GSS_ERROR(major_status))
-	{
-		WLog_ERR(TAG, "error: gss_unwrap failed");
 		return SEC_E_INTERNAL_ERROR;
-	}
 
 	if (conf_state == 0)
 	{
@@ -484,7 +496,7 @@ const SecurityFunctionTableA KERBEROS_SecurityFunctionTableA =
 	kerberos_InitializeSecurityContextA,	/* InitializeSecurityContext */
 	NULL,			/* AcceptSecurityContext */
 	NULL,			/* CompleteAuthToken */
-	NULL,			/* DeleteSecurityContext */
+	kerberos_DeleteSecurityContext,			/* DeleteSecurityContext */
 	NULL,			/* ApplyControlToken */
 	kerberos_QueryContextAttributesA,	/* QueryContextAttributes */
 	NULL,			/* ImpersonateSecurityContext */
@@ -516,7 +528,7 @@ const SecurityFunctionTableW KERBEROS_SecurityFunctionTableW =
 	kerberos_InitializeSecurityContextW,	/* InitializeSecurityContext */
 	NULL,			/* AcceptSecurityContext */
 	NULL,			/* CompleteAuthToken */
-	NULL,			/* DeleteSecurityContext */
+	kerberos_DeleteSecurityContext,			/* DeleteSecurityContext */
 	NULL,			/* ApplyControlToken */
 	kerberos_QueryContextAttributesW,	/* QueryContextAttributes */
 	NULL,			/* ImpersonateSecurityContext */
