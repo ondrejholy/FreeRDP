@@ -874,9 +874,7 @@ typedef struct _GSSAPI_FUNCTION_TABLE GSSAPI_FUNCTION_TABLE;
 extern "C" {
 #endif
 
-int sspi_GssSpnToServiceName(char* server, sspi_gss_name_t* name);
-int sspi_GssWrap(sspi_gss_ctx_id_t ctx, PSecBuffer in, PSecBuffer out);
-int sspi_GssUnwrap(sspi_gss_ctx_id_t ctx, PSecBuffer in, PSecBuffer out);
+
 
 #ifdef __cplusplus
 }

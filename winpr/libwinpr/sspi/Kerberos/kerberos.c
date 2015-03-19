@@ -68,17 +68,17 @@ void kerberos_ContextFree(KRB_CONTEXT* context)
 	free(context);
 }
 
-SECURITY_STATUS SEC_ENTRY kerberos_AcquireCredentialsHandleW(SEC_WCHAR * pszPrincipal, SEC_WCHAR * pszPackage,
-				   ULONG fCredentialUse, void *pvLogonID, void *pAuthData,
-				   SEC_GET_KEY_FN pGetKeyFn, void *pvGetKeyArgument,
+SECURITY_STATUS SEC_ENTRY kerberos_AcquireCredentialsHandleW(SEC_WCHAR* pszPrincipal, SEC_WCHAR* pszPackage,
+				   ULONG fCredentialUse, void* pvLogonID, void* pAuthData,
+				   SEC_GET_KEY_FN pGetKeyFn, void* pvGetKeyArgument,
 				   PCredHandle phCredential, PTimeStamp ptsExpiry)
 {
 	return SEC_E_OK;
 }
 
-SECURITY_STATUS SEC_ENTRY kerberos_AcquireCredentialsHandleA(SEC_CHAR * pszPrincipal, SEC_CHAR * pszPackage,
-				   ULONG fCredentialUse, void *pvLogonID, void *pAuthData,
-				   SEC_GET_KEY_FN pGetKeyFn, void *pvGetKeyArgument,
+SECURITY_STATUS SEC_ENTRY kerberos_AcquireCredentialsHandleA(SEC_CHAR* pszPrincipal, SEC_CHAR* pszPackage,
+				   ULONG fCredentialUse, void* pvLogonID, void* pAuthData,
+				   SEC_GET_KEY_FN pGetKeyFn, void* pvGetKeyArgument,
 				   PCredHandle phCredential, PTimeStamp ptsExpiry)
 {
 	return SEC_E_OK;
@@ -86,7 +86,7 @@ SECURITY_STATUS SEC_ENTRY kerberos_AcquireCredentialsHandleA(SEC_CHAR * pszPrinc
 
 SECURITY_STATUS SEC_ENTRY kerberos_FreeCredentialsHandle(PCredHandle phCredential)
 {
-	SSPI_CREDENTIALS *credentials;
+	SSPI_CREDENTIALS* credentials;
 
 	if (!phCredential)
 		return SEC_E_INVALID_HANDLE;
@@ -97,10 +97,11 @@ SECURITY_STATUS SEC_ENTRY kerberos_FreeCredentialsHandle(PCredHandle phCredentia
 		return SEC_E_INVALID_HANDLE;
 
 	sspi_CredentialsFree(credentials);
+
 	return SEC_E_OK;
 }
 
-SECURITY_STATUS SEC_ENTRY kerberos_QueryCredentialsAttributesW(PCredHandle phCredential, ULONG ulAttribute, void *pBuffer)
+SECURITY_STATUS SEC_ENTRY kerberos_QueryCredentialsAttributesW(PCredHandle phCredential, ULONG ulAttribute, void* pBuffer)
 {
 	if (ulAttribute == SECPKG_CRED_ATTR_NAMES)
 	{
@@ -110,25 +111,27 @@ SECURITY_STATUS SEC_ENTRY kerberos_QueryCredentialsAttributesW(PCredHandle phCre
 	return SEC_E_UNSUPPORTED_FUNCTION;
 }
 
-SECURITY_STATUS SEC_ENTRY kerberos_QueryCredentialsAttributesA(PCredHandle phCredential, ULONG ulAttribute, void *pBuffer)
+SECURITY_STATUS SEC_ENTRY kerberos_QueryCredentialsAttributesA(PCredHandle phCredential, ULONG ulAttribute, void* pBuffer)
 {
 	return kerberos_QueryCredentialsAttributesW(phCredential, ulAttribute, pBuffer);
 }
 
 SECURITY_STATUS SEC_ENTRY kerberos_InitializeSecurityContextW(PCredHandle phCredential, PCtxtHandle phContext,
-				    SEC_WCHAR * pszTargetName, ULONG fContextReq, ULONG Reserved1,
+				    SEC_WCHAR* pszTargetName, ULONG fContextReq, ULONG Reserved1,
 				    ULONG TargetDataRep, PSecBufferDesc pInput, ULONG Reserved2,
 				    PCtxtHandle phNewContext, PSecBufferDesc pOutput,
-				    ULONG * pfContextAttr, PTimeStamp ptsExpiry)
+				    ULONG* pfContextAttr, PTimeStamp ptsExpiry)
 {
 	return SEC_E_UNSUPPORTED_FUNCTION;
 }
 
 int kerberos_SetContextServicePrincipalNameA(KRB_CONTEXT* context, SEC_CHAR* ServicePrincipalName)
 {
-	size_t length;
-	char* replacedSPN = NULL;
-	char* toreplace = NULL;
+	char* p;
+	UINT32 major_status;
+	UINT32 minor_status;
+	char* gss_name = NULL;
+	sspi_gss_buffer_desc name_buffer;
 
 	if (!ServicePrincipalName)
 	{
@@ -137,38 +140,42 @@ int kerberos_SetContextServicePrincipalNameA(KRB_CONTEXT* context, SEC_CHAR* Ser
 	}
 
 	/* GSSAPI expects a SPN of type <service>@FQDN, let's construct it */
-	length = strlen(ServicePrincipalName);
-	replacedSPN = malloc(length);
 
-	if (!replacedSPN)
+	gss_name = _strdup(ServicePrincipalName);
+
+	if (!gss_name)
+		return -1;
+
+	p = strchr(gss_name, '/');
+
+	if (p)
+		*p = '@';
+
+	name_buffer.value = gss_name;
+	name_buffer.length = strlen(gss_name) + 1;
+
+	major_status = sspi_gss_import_name(&minor_status, &name_buffer,
+			SSPI_GSS_C_NT_HOSTBASED_SERVICE, &(context->target_name));
+
+	free(gss_name);
+
+	if (SSPI_GSS_ERROR(major_status))
 	{
-		WLog_ERR(TAG, "Kerberos: Could not allocate memory");
+		WLog_ERR(TAG, "error: gss_import_name failed");
 		return -1;
 	}
 
-	CopyMemory(replacedSPN, ServicePrincipalName, length);
-	toreplace = strchr(replacedSPN, '/');
-	*toreplace = '@';
-
-	if (!sspi_GssSpnToServiceName(replacedSPN, &(context->target_name)))
-	{
-		WLog_ERR(TAG, "Kerberos: Failed to get target service name");
-		free(replacedSPN);
-		return -1;
-	}
-
-	free(replacedSPN);
 	return 1;
 }
 
 SECURITY_STATUS SEC_ENTRY kerberos_InitializeSecurityContextA(PCredHandle phCredential, PCtxtHandle phContext,
-				    SEC_CHAR * pszTargetName, ULONG fContextReq, ULONG Reserved1,
+				    SEC_CHAR* pszTargetName, ULONG fContextReq, ULONG Reserved1,
 				    ULONG TargetDataRep, PSecBufferDesc pInput, ULONG Reserved2,
 				    PCtxtHandle phNewContext, PSecBufferDesc pOutput,
-				    ULONG * pfContextAttr, PTimeStamp ptsExpiry)
+				    ULONG* pfContextAttr, PTimeStamp ptsExpiry)
 {
 	KRB_CONTEXT* context;
-	SSPI_CREDENTIALS *credentials;
+	SSPI_CREDENTIALS* credentials;
 	PSecBuffer input_buffer = NULL;
 	PSecBuffer output_buffer = NULL;
 	sspi_gss_buffer_desc input_tok;
@@ -190,41 +197,29 @@ SECURITY_STATUS SEC_ENTRY kerberos_InitializeSecurityContextA(PCredHandle phCred
 		if (!context)
 			return SEC_E_INSUFFICIENT_MEMORY;
 
-		credentials = (SSPI_CREDENTIALS *) sspi_SecureHandleGetLowerPointer(phCredential);
+		credentials = (SSPI_CREDENTIALS*) sspi_SecureHandleGetLowerPointer(phCredential);
 		context->credentials = credentials;
 
 		if (kerberos_SetContextServicePrincipalNameA(context, pszTargetName) < 0)
 			return SEC_E_INTERNAL_ERROR;
 
 		sspi_SecureHandleSetLowerPointer(phNewContext, context);
-		sspi_SecureHandleSetUpperPointer(phNewContext, (void *) KRB_PACKAGE_NAME);
+		sspi_SecureHandleSetUpperPointer(phNewContext, (void*) KRB_PACKAGE_NAME);
 	}
 
 	if (!pInput)
 	{
-		int i = 0;
-
 		context->major_status = sspi_gss_init_sec_context(&(context->minor_status),
-							     context->cred,
-							     &(context->gss_ctx),
-							     context->target_name,
-							     desired_mech,
-							     SSPI_GSS_C_MUTUAL_FLAG | SSPI_GSS_C_DELEG_FLAG,
-							     SSPI_GSS_C_INDEFINITE,
-							     SSPI_GSS_C_NO_CHANNEL_BINDINGS,
-							     &input_tok,
-							     &actual_mech,
-							     &output_tok, &actual_services,
-							     &(context->actual_time));
+				context->cred, &(context->gss_ctx), context->target_name,
+				desired_mech, SSPI_GSS_C_MUTUAL_FLAG | SSPI_GSS_C_DELEG_FLAG,
+				SSPI_GSS_C_INDEFINITE, SSPI_GSS_C_NO_CHANNEL_BINDINGS,
+				&input_tok, &actual_mech, &output_tok, &actual_services, &(context->actual_time));
+
 		if (SSPI_GSS_ERROR(context->major_status))
 		{
-			if (i == 0)
-				WLog_ERR(TAG, "Kerberos: Initialize failed, do you have correct kerberos tgt initialized ?\n");
-			else
-				WLog_ERR(TAG, "Kerberos: Negotiation failed.\n");
-
-			WLog_ERR(TAG, "Kerberos: gss_init_sec_context failed with %lu\n", SSPI_GSS_C_GSS_CODE);
-			return -1;
+			WLog_ERR(TAG, "Kerberos: Initialize failed, do you have correct kerberos tgt initialized?");
+			WLog_ERR(TAG, "Kerberos: gss_init_sec_context failed with %d", SSPI_GSS_C_GSS_CODE);
+			return SEC_E_INTERNAL_ERROR;
 		}
 
 		if (context->major_status & SSPI_GSS_S_CONTINUE_NEEDED)
@@ -255,7 +250,6 @@ SECURITY_STATUS SEC_ENTRY kerberos_InitializeSecurityContextA(PCredHandle phCred
 	}
 	else
 	{
-		int i = 0;
 		input_buffer = sspi_FindSecBuffer(pInput, SECBUFFER_TOKEN);
 
 		if (!input_buffer)
@@ -268,32 +262,21 @@ SECURITY_STATUS SEC_ENTRY kerberos_InitializeSecurityContextA(PCredHandle phCred
 		input_tok.length = input_buffer->cbBuffer;
 
 		context->major_status = sspi_gss_init_sec_context(&(context->minor_status),
-							     context->cred,
-							     &(context->gss_ctx),
-							     context->target_name,
-							     desired_mech,
-							     SSPI_GSS_C_MUTUAL_FLAG | SSPI_GSS_C_DELEG_FLAG,
-							     SSPI_GSS_C_INDEFINITE,
-							     SSPI_GSS_C_NO_CHANNEL_BINDINGS,
-							     &input_tok,
-							     &actual_mech,
-							     &output_tok, &actual_services,
-							     &(context->actual_time));
+				context->cred, &(context->gss_ctx), context->target_name,
+				desired_mech, SSPI_GSS_C_MUTUAL_FLAG | SSPI_GSS_C_DELEG_FLAG,
+				SSPI_GSS_C_INDEFINITE, SSPI_GSS_C_NO_CHANNEL_BINDINGS,
+				&input_tok, &actual_mech, &output_tok, &actual_services, &(context->actual_time));
+
 		if (SSPI_GSS_ERROR(context->major_status))
 		{
-			if (i == 0)
-				WLog_ERR(TAG, "Kerberos: Initialize failed, do you have correct kerberos tgt initialized ?\n");
-			else
-				WLog_ERR(TAG, "Kerberos: Negotiation failed.\n");
-
+			WLog_ERR(TAG, "Kerberos: Initialize failed, do you have correct kerberos tgt initialized?");
 			WLog_ERR(TAG, "Kerberos: gss_init_sec_context failed with %lu\n", SSPI_GSS_C_GSS_CODE);
-
-			return -1;
+			return SEC_E_INTERNAL_ERROR;
 		}
 
 		if (output_tok.length == 0)
 		{
-			/* Frees output_buffer to detect second call in NLA */
+			/* Free output_buffer to detect second call in NLA */
 			output_buffer = sspi_FindSecBuffer(pOutput, SECBUFFER_TOKEN);
 			sspi_SecBufferFree(output_buffer);
 			return SEC_E_OK;
@@ -307,12 +290,12 @@ SECURITY_STATUS SEC_ENTRY kerberos_InitializeSecurityContextA(PCredHandle phCred
 	return SEC_E_INTERNAL_ERROR;
 }
 
-SECURITY_STATUS SEC_ENTRY kerberos_QueryContextAttributesW(PCtxtHandle phContext, ULONG ulAttribute, void *pBuffer)
+SECURITY_STATUS SEC_ENTRY kerberos_QueryContextAttributesW(PCtxtHandle phContext, ULONG ulAttribute, void* pBuffer)
 {
 	return SEC_E_OK;
 }
 
-SECURITY_STATUS SEC_ENTRY kerberos_QueryContextAttributesA(PCtxtHandle phContext, ULONG ulAttribute, void *pBuffer)
+SECURITY_STATUS SEC_ENTRY kerberos_QueryContextAttributesA(PCtxtHandle phContext, ULONG ulAttribute, void* pBuffer)
 {
 	if (!phContext)
 		return SEC_E_INVALID_HANDLE;
@@ -324,7 +307,7 @@ SECURITY_STATUS SEC_ENTRY kerberos_QueryContextAttributesA(PCtxtHandle phContext
 	{
 		SecPkgContext_Sizes* ContextSizes = (SecPkgContext_Sizes*) pBuffer;
 
-		/* FIXME: Hard-coded size is ugly */
+		/* FIXME: don't use hardcoded values */
 		ContextSizes->cbMaxToken = 2010;
 		ContextSizes->cbMaxSignature = 0;
 		ContextSizes->cbBlockSize = 60;
@@ -340,11 +323,19 @@ SECURITY_STATUS SEC_ENTRY kerberos_EncryptMessage(PCtxtHandle phContext, ULONG f
 		PSecBufferDesc pMessage, ULONG MessageSeqNo)
 {
 	int index;
+	int conf_state;
+	UINT32 major_status;
+	UINT32 minor_status;
 	KRB_CONTEXT* context;
+	sspi_gss_buffer_desc input;
+	sspi_gss_buffer_desc output;
 	PSecBuffer data_buffer = NULL;
 	PSecBuffer signature_buffer = NULL;
 
 	context = (KRB_CONTEXT*) sspi_SecureHandleGetLowerPointer(phContext);
+
+	if (!context)
+		return SEC_E_INVALID_HANDLE;
 
 	for (index = 0; index < (int) pMessage->cBuffers; index++)
 	{
@@ -360,11 +351,27 @@ SECURITY_STATUS SEC_ENTRY kerberos_EncryptMessage(PCtxtHandle phContext, ULONG f
 	if (!signature_buffer)
 		return SEC_E_INVALID_TOKEN;
 
-	if (!sspi_GssWrap(context->gss_ctx, data_buffer, signature_buffer))
+	input.value = data_buffer->pvBuffer;
+	input.length = data_buffer->cbBuffer;
+
+	major_status = sspi_gss_wrap(&minor_status, context->gss_ctx, TRUE,
+			SSPI_GSS_C_QOP_DEFAULT, &input, &conf_state, &output);
+
+	if (SSPI_GSS_ERROR(major_status))
 	{
-		printf("Something went wrong with call_gss_wrap!\n");
+		WLog_ERR(TAG, "error: gss_wrap failed");
 		return SEC_E_INTERNAL_ERROR;
 	}
+
+	if (conf_state == 0)
+	{
+		WLog_ERR(TAG, "error: gss_wrap confidentiality was not applied");
+		sspi_gss_release_buffer(&minor_status, &output);
+		return SEC_E_INTERNAL_ERROR;
+	}
+
+	CopyMemory(signature_buffer->pvBuffer, output.value, output.length);
+	sspi_gss_release_buffer(&minor_status, &output);
 
 	return SEC_E_OK;
 }
@@ -373,10 +380,19 @@ SECURITY_STATUS SEC_ENTRY kerberos_DecryptMessage(PCtxtHandle phContext,
 		PSecBufferDesc pMessage, ULONG MessageSeqNo, ULONG* pfQOP)
 {
 	int index;
-	KRB_CONTEXT *context;
+	int conf_state;
+	UINT32 major_status;
+	UINT32 minor_status;
+	KRB_CONTEXT* context;
+	sspi_gss_buffer_desc input;
+	sspi_gss_buffer_desc output;
 	PSecBuffer data_buffer = NULL;
 	PSecBuffer signature_buffer = NULL;
-	context = (KRB_CONTEXT *) sspi_SecureHandleGetLowerPointer(phContext);
+
+	context = (KRB_CONTEXT*) sspi_SecureHandleGetLowerPointer(phContext);
+
+	if (!context)
+		return SEC_E_INVALID_HANDLE;
 
 	for (index = 0; index < (int) pMessage->cBuffers; index++)
 	{
@@ -392,11 +408,26 @@ SECURITY_STATUS SEC_ENTRY kerberos_DecryptMessage(PCtxtHandle phContext,
 	if (!signature_buffer)
 		return SEC_E_INVALID_TOKEN;
 
-	if (!sspi_GssUnwrap(context->gss_ctx, data_buffer, signature_buffer))
+	input.value = data_buffer->pvBuffer;
+	input.length = data_buffer->cbBuffer;
+
+	major_status = sspi_gss_unwrap(&minor_status, context->gss_ctx, &input, &output, &conf_state, NULL);
+
+	if (SSPI_GSS_ERROR(major_status))
 	{
-		printf("Something went wrong with call_gss_unwrap!\n");
+		WLog_ERR(TAG, "error: gss_unwrap failed");
 		return SEC_E_INTERNAL_ERROR;
 	}
+
+	if (conf_state == 0)
+	{
+		WLog_ERR(TAG, "error: gss_unwrap confidentiality was not applied");
+		sspi_gss_release_buffer(&minor_status, &output);
+		return SEC_E_INTERNAL_ERROR;
+	}
+
+	CopyMemory(signature_buffer->pvBuffer, output.value, output.length);
+	sspi_gss_release_buffer(&minor_status, &output);
 
 	return SEC_E_OK;
 }

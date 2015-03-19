@@ -27,11 +27,9 @@ set(${MODULE_PREFIX}_NTLM_SRCS
 	NTLM/ntlm.c
 	NTLM/ntlm.h)
 
-if(GSS_FOUND)
-	set(${MODULE_PREFIX}_KERBEROS_SRCS
-		Kerberos/kerberos.c
-		Kerberos/kerberos.h)
-endif()
+set(${MODULE_PREFIX}_KERBEROS_SRCS
+	Kerberos/kerberos.c
+	Kerberos/kerberos.h)
 
 set(${MODULE_PREFIX}_NEGOTIATE_SRCS
 	Negotiate/negotiate.c
