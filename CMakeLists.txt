@@ -588,7 +588,11 @@ find_feature(GSSAPI ${GSSAPI_FEATURE_TYPE} ${GSSAPI_FEATURE_PURPOSE} ${GSSAPI_FE
 if ((DEFINED WITH_GSSAPI) AND (NOT GSS_FOUND))
 	message(WARNING "-DWITH_GSSAPI=ON is set, but not GSSAPI implementation was found, disabling")
 else()
-	add_definitions("-DWITH_GSSAPI")
+	if(GSS_FLAVOUR STREQUAL "MIT")
+		add_definitions("-DWITH_GSSAPI -DWITH_GSSAPI_MIT")
+	else()
+		add_definitions("-DWITH_GSSAPI -DWITH_GSSAPI_HEIMDAL")
+	endif()
 endif()
 find_feature(OpenSLES ${OPENSLES_FEATURE_TYPE} ${OPENSLES_FEATURE_PURPOSE} ${OPENSLES_FEATURE_DESCRIPTION})
 
