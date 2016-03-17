@@ -474,43 +474,33 @@ void rdp_write_info_packet(rdpRdp* rdp, wStream* s)
 		flags |= ((settings->CompressionLevel << 9) & 0x00001E00);
 	}
 
-	if (settings->Domain)
+	if (settings->AutoLogonEnabled)
 	{
-		cbDomain = ConvertToUnicode(CP_UTF8, 0, settings->Domain, -1, &domainW, 0) * 2;
-	}
-	else
-	{
-		domainW = NULL;
-		cbDomain = 0;
-	}
-
-	if (!settings->RemoteAssistanceMode)
-	{
-		cbUserName = ConvertToUnicode(CP_UTF8, 0, settings->Username, -1, &userNameW, 0) * 2;
-	}
-	else
-	{
-		/* user name provided by the expert for connecting to the novice computer */
-		cbUserName = ConvertToUnicode(CP_UTF8, 0, settings->Username, -1, &userNameW, 0) * 2;
-	}
-
-	if (!settings->RemoteAssistanceMode)
-	{
-		if (settings->RedirectionPassword && settings->RedirectionPasswordLength > 0)
+		if (settings->Domain)
 		{
-			usedPasswordCookie = TRUE;
-			passwordW = (WCHAR*) settings->RedirectionPassword;
-			cbPassword = settings->RedirectionPasswordLength - 2; /* Strip double zero termination */
+			cbDomain = ConvertToUnicode(CP_UTF8, 0, settings->Domain, -1, &domainW, 0) * 2;
+		}
+
+		cbUserName = ConvertToUnicode(CP_UTF8, 0, settings->Username, -1, &userNameW, 0) * 2;
+
+		if (!settings->RemoteAssistanceMode)
+		{
+			if (settings->RedirectionPassword && settings->RedirectionPasswordLength > 0)
+			{
+				usedPasswordCookie = TRUE;
+				passwordW = (WCHAR*) settings->RedirectionPassword;
+				cbPassword = settings->RedirectionPasswordLength - 2; /* Strip double zero termination */
+			}
+			else
+			{
+				cbPassword = ConvertToUnicode(CP_UTF8, 0, settings->Password, -1, &passwordW, 0) * 2;
+			}
 		}
 		else
 		{
-			cbPassword = ConvertToUnicode(CP_UTF8, 0, settings->Password, -1, &passwordW, 0) * 2;
+			/* This field MUST be filled with "*" */
+			cbPassword = ConvertToUnicode(CP_UTF8, 0, "*", -1, &passwordW, 0) * 2;
 		}
-	}
-	else
-	{
-		/* This field MUST be filled with "*" */
-		cbPassword = ConvertToUnicode(CP_UTF8, 0, "*", -1, &passwordW, 0) * 2;
 	}
 
 	if (!settings->RemoteAssistanceMode)
