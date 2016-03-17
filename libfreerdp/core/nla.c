@@ -110,11 +110,11 @@ int nla_client_init(rdpNla* nla)
 	char* spn;
 	int length;
 	rdpTls* tls = NULL;
-	BOOL PromptPassword = FALSE;
 	freerdp* instance = nla->instance;
 	rdpSettings* settings = nla->settings;
 
 	nla->state = NLA_STATE_INITIAL;
+	nla->PromptPassword = FALSE;
 
 	if (settings->RestrictedAdminModeRequired)
 		settings->DisableCredentialsDelegation = TRUE;
@@ -122,21 +122,21 @@ int nla_client_init(rdpNla* nla)
 	if ((!settings->Password) || (!settings->Username)
 			|| (!strlen(settings->Password)) || (!strlen(settings->Username)))
 	{
-		PromptPassword = TRUE;
+		nla->PromptPassword = TRUE;
 	}
 
 #ifndef _WIN32
-	if (PromptPassword)
+	if (nla->PromptPassword)
 	{
 		if (settings->RestrictedAdminModeRequired)
 		{
 			if ((settings->PasswordHash) && (strlen(settings->PasswordHash) > 0))
-				PromptPassword = FALSE;
+				nla->PromptPassword = FALSE;
 		}
 	}
 #endif
 
-	if (PromptPassword)
+	if (nla->PromptPassword && settings->RestrictedAdminModeRequired)
 	{
 		if (instance->Authenticate)
 		{
@@ -148,6 +148,8 @@ int nla_client_init(rdpNla* nla)
 				freerdp_set_last_error(instance->context, FREERDP_ERROR_CONNECT_CANCELLED);
 				return 0;
 			}
+
+			nla->PromptPassword = FALSE;
 		}
 	}
 

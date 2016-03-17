@@ -81,6 +81,7 @@ struct rdp_nla
 	PSecurityFunctionTable table;
 	SecPkgContext_Sizes ContextSizes;
 	SecPkgContext_PackageInfo PackageInfo;
+	BOOL PromptPassword;
 };
 
 int nla_authenticate(rdpNla* nla);
