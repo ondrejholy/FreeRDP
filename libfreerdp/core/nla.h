@@ -80,6 +80,7 @@ struct rdp_nla
 	SEC_WINNT_AUTH_IDENTITY identity;
 	PSecurityFunctionTable table;
 	SecPkgContext_Sizes ContextSizes;
+	SecPkgContext_PackageInfo PackageInfo;
 };
 
 int nla_authenticate(rdpNla* nla);

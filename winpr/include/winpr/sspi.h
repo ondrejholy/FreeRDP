@@ -89,8 +89,9 @@ typedef SecPkgInfoW* PSecPkgInfoW;
 #define PSecPkgInfo PSecPkgInfoA
 #endif
 
-#define NTLMSP_NAME	_T("NTLM")
-#define NEGOSSP_NAME	_T("Negotiate")
+#define NTLMSP_NAME				_T("NTLM")
+#define NEGOSSP_NAME				_T("Negotiate")
+#define MICROSOFT_KERBEROS_NAME			_T("Kerberos")
 
 #endif
 

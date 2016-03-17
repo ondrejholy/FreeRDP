@@ -246,6 +246,8 @@ int nla_client_init(rdpNla* nla)
 
 int nla_client_begin(rdpNla* nla)
 {
+	rdpSettings* settings = nla->settings;
+
 	if (nla_client_init(nla) < 1)
 		return -1;
 
@@ -283,6 +285,18 @@ int nla_client_begin(rdpNla* nla)
 
 	if (nla->outputBuffer.cbBuffer < 1)
 		return -1;
+
+	if (nla->table->QueryContextAttributes (&nla->context, SECPKG_ATTR_PACKAGE_INFO, &nla->PackageInfo) != SEC_E_OK)
+	{
+		WLog_ERR(TAG, "QueryContextAttributes SECPKG_ATTR_PACKAGE_INFO failure");
+		return -1;
+	}
+
+	if (strcmp (nla->PackageInfo.PackageInfo->Name, MICROSOFT_KERBEROS_NAME) == 0)
+	{
+		settings->DisableCredentialsDelegation = TRUE;
+		settings->AutoLogonEnabled = FALSE;
+	}
 
 	nla->negoToken.pvBuffer = nla->outputBuffer.pvBuffer;
 	nla->negoToken.cbBuffer = nla->outputBuffer.cbBuffer;
