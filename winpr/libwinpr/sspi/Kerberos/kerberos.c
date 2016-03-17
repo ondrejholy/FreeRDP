@@ -41,6 +41,8 @@ char* KRB_PACKAGE_NAME = "Kerberos";
 static sspi_gss_OID_desc g_SSPI_GSS_C_SPNEGO_KRB5 = { 9, (void*) "\x2a\x86\x48\x86\xf7\x12\x01\x02\x02" };
 sspi_gss_OID SSPI_GSS_C_SPNEGO_KRB5 = &g_SSPI_GSS_C_SPNEGO_KRB5;
 
+const SecPkgInfoA KERBEROS_SecPkgInfoA;
+
 KRB_CONTEXT* kerberos_ContextNew()
 {
 	KRB_CONTEXT* context;
@@ -312,7 +314,7 @@ SECURITY_STATUS SEC_ENTRY kerberos_DeleteSecurityContext(PCtxtHandle phContext)
 
 SECURITY_STATUS SEC_ENTRY kerberos_QueryContextAttributesW(PCtxtHandle phContext, ULONG ulAttribute, void* pBuffer)
 {
-	return SEC_E_OK;
+	return SEC_E_UNSUPPORTED_FUNCTION;
 }
 
 SECURITY_STATUS SEC_ENTRY kerberos_QueryContextAttributesA(PCtxtHandle phContext, ULONG ulAttribute, void* pBuffer)
@@ -332,6 +334,13 @@ SECURITY_STATUS SEC_ENTRY kerberos_QueryContextAttributesA(PCtxtHandle phContext
 		ContextSizes->cbMaxSignature = 0;
 		ContextSizes->cbBlockSize = 60;
 		ContextSizes->cbSecurityTrailer = 0;
+
+		return SEC_E_OK;
+	}
+	else if (ulAttribute == SECPKG_ATTR_PACKAGE_INFO)
+	{
+		SecPkgContext_PackageInfo* PackageInfo = (SecPkgContext_PackageInfo*) pBuffer;
+		PackageInfo->PackageInfo = (SecPkgInfo*)&KERBEROS_SecPkgInfoA;
 
 		return SEC_E_OK;
 	}

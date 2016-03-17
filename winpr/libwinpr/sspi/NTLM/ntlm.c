@@ -44,6 +44,9 @@
 
 char* NTLM_PACKAGE_NAME = "NTLM";
 
+const SecPkgInfoA NTLM_SecPkgInfoA;
+const SecPkgInfoW NTLM_SecPkgInfoW;
+
 int ntlm_SetContextWorkstation(NTLM_CONTEXT* context, char* Workstation)
 {
 	int status;
@@ -691,12 +694,33 @@ SECURITY_STATUS SEC_ENTRY ntlm_QueryContextAttributesW(PCtxtHandle phContext, UL
 
 		return SEC_E_OK;
 	}
+	else if (ulAttribute == SECPKG_ATTR_PACKAGE_INFO)
+	{
+		SecPkgContext_PackageInfo* PackageInfo = (SecPkgContext_PackageInfo*) pBuffer;
+		PackageInfo->PackageInfo = (SecPkgInfo*)&NTLM_SecPkgInfoW;
+
+		return SEC_E_OK;
+	}
 
 	return SEC_E_UNSUPPORTED_FUNCTION;
 }
 
 SECURITY_STATUS SEC_ENTRY ntlm_QueryContextAttributesA(PCtxtHandle phContext, ULONG ulAttribute, void* pBuffer)
 {
+	if (!phContext)
+		return SEC_E_INVALID_HANDLE;
+
+	if (!pBuffer)
+		return SEC_E_INSUFFICIENT_MEMORY;
+
+	if (ulAttribute == SECPKG_ATTR_PACKAGE_INFO)
+	{
+		SecPkgContext_PackageInfo* PackageInfo = (SecPkgContext_PackageInfo*) pBuffer;
+		PackageInfo->PackageInfo = (SecPkgInfo*)&NTLM_SecPkgInfoA;
+
+		return SEC_E_OK;
+	}
+
 	return ntlm_QueryContextAttributesW(phContext, ulAttribute, pBuffer);
 }
 
