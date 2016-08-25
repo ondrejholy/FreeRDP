@@ -292,7 +292,9 @@ BOOL test_unicode_uppercasing(BYTE* lower, BYTE* upper)
 
 BOOL test_ConvertFromUnicode_wrapper()
 {
+	//WCHAR src1[] = { 'R','I','C','H',' ','T','E','X','T',' ','F','O','R','M','A','T','@','@','@' };
 	BYTE src1[] = "\x52\x00\x49\x00\x43\x00\x48\x00\x20\x00\x54\x00\x45\x00\x58\x00\x54\x00\x20\x00\x46\x00\x4f\x00\x52\x00\x4d\x00\x41\x00\x54\x00\x40\x00\x40\x00\x40\x00";
+	//WCHAR src2[] = { 'R','I','C','H',' ','T','E','X','T',' ','F','O','R','M','A','T', 0 };
 	BYTE src2[] = "\x52\x00\x49\x00\x43\x00\x48\x00\x20\x00\x54\x00\x45\x00\x58\x00\x54\x00\x20\x00\x46\x00\x4f\x00\x52\x00\x4d\x00\x41\x00\x54\x00\x00\x00";
 	/*               00  01  02  03  04  05  06  07  08  09  10  11  12  13  14  15  16  17  18 */
 	CHAR  cmp0[] = { 'R','I','C','H',' ','T','E','X','T',' ','F','O','R','M','A','T', 0 };
@@ -379,6 +381,7 @@ BOOL test_ConvertToUnicode_wrapper()
 	/*               00  01  02  03  04  05  06  07  08  09  10  11  12  13  14  15  16  17  18 */
 	CHAR  src1[] = { 'R','I','C','H',' ','T','E','X','T',' ','F','O','R','M','A','T','@','@','@' };
 	CHAR  src2[] = { 'R','I','C','H',' ','T','E','X','T',' ','F','O','R','M','A','T', 0 };
+	//WCHAR cmp0[] = { 'R','I','C','H',' ','T','E','X','T',' ','F','O','R','M','A','T', 0 };
 	BYTE cmp0[] = "\x52\x00\x49\x00\x43\x00\x48\x00\x20\x00\x54\x00\x45\x00\x58\x00\x54\x00\x20\x00\x46\x00\x4f\x00\x52\x00\x4d\x00\x41\x00\x54\x00\x00\x00";
 	WCHAR* dst = NULL;
 	int i;
