@@ -126,6 +126,13 @@ static const char* const AV_PAIRS_STRINGS[] =
 	"MsvChannelBindings"
 };
 
+#define Data_Write_UINT32(_d, _v) do { \
+       *((uint8*) _d) = (_v) & 0xFF; \
+       *((uint8*) _d + 1) = ((_v) >> 8) & 0xFF; \
+       *((uint8*) _d + 2) = ((_v) >> 16) & 0xFF; \
+       *((uint8*) _d + 3) = ((_v) >> 24) & 0xFF; \
+} while (0)
+
 /**
  * Set NTLMSSP username.
  * @param ntlmssp
@@ -138,7 +145,9 @@ void ntlmssp_set_username(NTLMSSP* ntlmssp, char* username)
 
 	if (username != NULL)
 	{
-		ntlmssp->username.data = freerdp_uniconv_out(ntlmssp->uniconv, username, (size_t*) &(ntlmssp->username.length));
+		size_t length;
+		ntlmssp->username.data = freerdp_uniconv_out(ntlmssp->uniconv, username, &length);
+		ntlmssp->username.length = length;
 	}
 }
 
@@ -154,7 +163,9 @@ void ntlmssp_set_domain(NTLMSSP* ntlmssp, char* domain)
 
 	if (domain != NULL)
 	{
-		ntlmssp->domain.data = freerdp_uniconv_out(ntlmssp->uniconv, domain, (size_t*) &(ntlmssp->domain.length));
+		size_t length;
+		ntlmssp->domain.data = freerdp_uniconv_out(ntlmssp->uniconv, domain, &length);
+		ntlmssp->domain.length = length;
 	}
 }
 
@@ -170,7 +181,9 @@ void ntlmssp_set_password(NTLMSSP* ntlmssp, char* password)
 
 	if (password != NULL)
 	{
-		ntlmssp->password.data = freerdp_uniconv_out(ntlmssp->uniconv, password, (size_t*) &(ntlmssp->password.length));
+		size_t length;
+		ntlmssp->password.data = freerdp_uniconv_out(ntlmssp->uniconv, password, &length);
+		ntlmssp->password.length = length;
 	}
 }
 
@@ -186,7 +199,9 @@ void ntlmssp_set_workstation(NTLMSSP* ntlmssp, char* workstation)
 
 	if (workstation != NULL)
 	{
-		ntlmssp->workstation.data = freerdp_uniconv_out(ntlmssp->uniconv, workstation, (size_t*) &(ntlmssp->workstation.length));
+		size_t length;
+		ntlmssp->workstation.data = freerdp_uniconv_out(ntlmssp->uniconv, workstation, &length);
+		ntlmssp->workstation.length = length;
 	}
 }
 
@@ -1185,11 +1200,13 @@ void ntlmssp_encrypt_message(NTLMSSP* ntlmssp, rdpBlob* msg, rdpBlob* encrypted_
 	uint8 digest[16];
 	uint8 checksum[8];
 	uint32 version = 1;
+	uint32 value;
 
 	/* Compute the HMAC-MD5 hash of ConcatenationOf(seq_num,msg) using the client signing key */
 	HMAC_CTX_init(&hmac_ctx);
 	HMAC_Init_ex(&hmac_ctx, ntlmssp->client_signing_key, 16, EVP_md5(), NULL);
-	HMAC_Update(&hmac_ctx, (void*) &ntlmssp->send_seq_num, 4);
+	Data_Write_UINT32(&value, ntlmssp->send_seq_num);
+	HMAC_Update(&hmac_ctx, (void*) &value, 4);
 	HMAC_Update(&hmac_ctx, msg->data, msg->length);
 	HMAC_Final(&hmac_ctx, digest, NULL);
 
@@ -1203,9 +1220,9 @@ void ntlmssp_encrypt_message(NTLMSSP* ntlmssp, rdpBlob* msg, rdpBlob* encrypted_
 	crypto_rc4(ntlmssp->send_rc4_seal, 8, digest, checksum);
 
 	/* Concatenate version, ciphertext and sequence number to build signature */
-	memcpy(signature, (void*) &version, 4);
+	Data_Write_UINT32(signature, version);
 	memcpy(&signature[4], (void*) checksum, 8);
-	memcpy(&signature[12], (void*) &(ntlmssp->send_seq_num), 4);
+	Data_Write_UINT32(&signature[12], ntlmssp->send_seq_num);
 
 	HMAC_CTX_cleanup(&hmac_ctx);
 
@@ -1230,6 +1247,7 @@ int ntlmssp_decrypt_message(NTLMSSP* ntlmssp, rdpBlob* encrypted_msg, rdpBlob* m
 	uint8 checksum[8];
 	uint32 version = 1;
 	uint8 expected_signature[16];
+	uint32 value;
 
 	/* Allocate space for encrypted message */
 	freerdp_blob_alloc(msg, encrypted_msg->length);
@@ -1240,7 +1258,8 @@ int ntlmssp_decrypt_message(NTLMSSP* ntlmssp, rdpBlob* encrypted_msg, rdpBlob* m
 	/* Compute the HMAC-MD5 hash of ConcatenationOf(seq_num,msg) using the client signing key */
 	HMAC_CTX_init(&hmac_ctx);
 	HMAC_Init_ex(&hmac_ctx, ntlmssp->server_signing_key, 16, EVP_md5(), NULL);
-	HMAC_Update(&hmac_ctx, (void*) &ntlmssp->recv_seq_num, 4);
+	Data_Write_UINT32(&value, ntlmssp->recv_seq_num);
+	HMAC_Update(&hmac_ctx, (void*) &value, 4);
 	HMAC_Update(&hmac_ctx, msg->data, msg->length);
 	HMAC_Final(&hmac_ctx, digest, NULL);
 
@@ -1248,9 +1267,9 @@ int ntlmssp_decrypt_message(NTLMSSP* ntlmssp, rdpBlob* encrypted_msg, rdpBlob* m
 	crypto_rc4(ntlmssp->recv_rc4_seal, 8, digest, checksum);
 
 	/* Concatenate version, ciphertext and sequence number to build signature */
-	memcpy(expected_signature, (void*) &version, 4);
+	Data_Write_UINT32(expected_signature, version);
 	memcpy(&expected_signature[4], (void*) checksum, 8);
-	memcpy(&expected_signature[12], (void*) &(ntlmssp->recv_seq_num), 4);
+	Data_Write_UINT32(&expected_signature[12], ntlmssp->recv_seq_num);
 
 	if (memcmp(signature, expected_signature, 16) != 0)
 	{
