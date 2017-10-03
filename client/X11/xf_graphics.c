@@ -49,6 +49,8 @@ void xf_Bitmap_New(rdpContext* context, rdpBitmap* bitmap)
 		{
 			image = XCreateImage(xfi->display, xfi->visual, xfi->depth,
 				ZPixmap, 0, (char*) data, bitmap->width, bitmap->height, xfi->scanline_pad, 0);
+			image->byte_order = LSBFirst;
+			image->bitmap_bit_order = LSBFirst;
 
 			XPutImage(xfi->display, pixmap, xfi->gc, image, 0, 0, 0, 0, bitmap->width, bitmap->height);
 			XFree(image);
@@ -89,6 +91,8 @@ void xf_Bitmap_Paint(rdpContext* context, rdpBitmap* bitmap)
 
 	image = XCreateImage(xfi->display, xfi->visual, xfi->depth,
 			ZPixmap, 0, (char*) bitmap->data, bitmap->width, bitmap->height, xfi->scanline_pad, 0);
+	image->byte_order = LSBFirst;
+	image->bitmap_bit_order = LSBFirst;
 
 	XPutImage(xfi->display, xfi->primary, xfi->gc,
 			image, 0, 0, bitmap->left, bitmap->top, width, height);
@@ -149,6 +153,13 @@ void xf_Bitmap_SetSurface(rdpContext* context, rdpBitmap* bitmap, boolean primar
 
 /* Pointer Class */
 
+#define Data_Read_UINT32(_d, _v) do { _v = \
+   (uint32)(*((uint8*) _d)) + \
+   (((uint32)(*((uint8*) _d + 1))) << 8) + \
+   (((uint32)(*((uint8*) _d + 2))) << 16) + \
+   (((uint32)(*((uint8*) _d + 3))) << 24); \
+} while (0)
+
 void xf_Pointer_New(rdpContext* context, rdpPointer* pointer)
 {
 	XcursorImage ci;
@@ -168,6 +179,25 @@ void xf_Pointer_New(rdpContext* context, rdpPointer* pointer)
 	{
 		freerdp_alpha_cursor_convert((uint8*) (ci.pixels), pointer->xorMaskData, pointer->andMaskData,
 				pointer->width, pointer->height, pointer->xorBpp, xfi->clrconv);
+	}
+
+	if (xfi->big_endian)
+	{
+		int x, y;
+		uint32* pixel;
+		uint32 value;
+
+		pixel = (uint32*) ci.pixels;
+
+		for (y = 0; y < ci.height; y++)
+		{
+			for (x = 0; x < ci.width; x++)
+			{
+				Data_Read_UINT32(pixel, value);
+				*pixel = value;
+				pixel++;
+			}
+		}
 	}
 
 	((xfPointer*) pointer)->cursor = XcursorImageLoadCursor(xfi->display, &ci);
@@ -209,7 +239,6 @@ void xf_Glyph_New(rdpContext* context, rdpGlyph* glyph)
 
 	image = XCreateImage(xfi->display, xfi->visual, 1,
 			ZPixmap, 0, (char*) glyph->aj, glyph->cx, glyph->cy, 8, scanline);
-
 	image->byte_order = MSBFirst;
 	image->bitmap_bit_order = MSBFirst;
 

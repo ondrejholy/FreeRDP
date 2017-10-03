@@ -181,6 +181,8 @@ void xf_sw_desktop_resize(rdpContext* context)
 			XDestroyImage(xfi->image);
 			xfi->image = XCreateImage(xfi->display, xfi->visual, xfi->depth, ZPixmap, 0,
 					(char*) gdi->primary_buffer, gdi->width, gdi->height, xfi->scanline_pad, 0);
+			xfi->image->byte_order = LSBFirst;
+			xfi->image->bitmap_bit_order = LSBFirst;
 		}
 	}
 }
@@ -707,6 +709,8 @@ boolean xf_post_connect(freerdp* instance)
 
 	xfi->image = XCreateImage(xfi->display, xfi->visual, xfi->depth, ZPixmap, 0,
 			(char*) xfi->primary_buffer, xfi->width, xfi->height, xfi->scanline_pad, 0);
+	xfi->image->byte_order = LSBFirst;
+	xfi->image->bitmap_bit_order = LSBFirst;
 
 	xfi->bmp_codec_none = (uint8*) xmalloc(64 * 64 * 4);
 

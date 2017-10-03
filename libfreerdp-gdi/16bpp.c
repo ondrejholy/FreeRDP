@@ -66,6 +66,11 @@ uint16 gdi_get_color_16bpp(HGDI_DC hdc, GDI_COLOR color)
 	return color16;
 }
 
+#define Data_Write_UINT16(_d, _v) do { \
+   *((uint8*) _d) = (_v) & 0xFF; \
+   *((uint8*) _d + 1) = ((_v) >> 8) & 0xFF; \
+} while (0)
+
 int FillRect_16bpp(HGDI_DC hdc, HGDI_RECT rect, HGDI_BRUSH hbr)
 {
 	int x, y;
@@ -90,7 +95,7 @@ int FillRect_16bpp(HGDI_DC hdc, HGDI_RECT rect, HGDI_BRUSH hbr)
 		{
 			for (x = 0; x < nWidth; x++)
 			{
-				*dstp = color16;
+				Data_Write_UINT16(dstp, color16);
 				dstp++;
 			}
 		}
@@ -373,11 +378,13 @@ static int BitBlt_DSPDxax_16bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int nWi
 	uint16 src16;
 	uint16 color16;
 	HGDI_BITMAP hSrcBmp;
+	uint16 pat;
 
 	/* D = (S & P) | (~S & D) */
 	/* DSPDxax, used to draw glyphs */
 
 	color16 = gdi_get_color_16bpp(hdcDest, hdcDest->textColor);
+	Data_Write_UINT16(&pat, color16);
 
 	hSrcBmp = (HGDI_BITMAP) hdcSrc->selectedObject;
 
@@ -397,7 +404,7 @@ static int BitBlt_DSPDxax_16bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int nWi
 			for (x = 0; x < nWidth; x++)
 			{
 				src16 = (*srcp << 8) | *srcp;
-				*dstp = (src16 & color16) | (~src16 & *dstp);
+				*dstp = (src16 & pat) | (~src16 & *dstp);
 				srcp++;
 				dstp++;
 			}
@@ -580,7 +587,7 @@ static int BitBlt_PATCOPY_16bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int nWi
 			{
 				for (x = 0; x < nWidth; x++)
 				{
-					*dstp = color16;
+					Data_Write_UINT16(dstp, color16);
 					dstp++;
 				}
 			}
@@ -613,10 +620,12 @@ static int BitBlt_PATINVERT_16bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int n
 	uint16* dstp;
 	uint16* patp;
 	uint16 color16;
+	uint16 pat;
 
 	if (hdcDest->brush->style == GDI_BS_SOLID)
 	{
 		color16 = gdi_get_color_16bpp(hdcDest, hdcDest->brush->color);
+		Data_Write_UINT16(&pat, color16);
 
 		for (y = 0; y < nHeight; y++)
 		{
@@ -626,7 +635,7 @@ static int BitBlt_PATINVERT_16bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int n
 			{
 				for (x = 0; x < nWidth; x++)
 				{
-					*dstp ^= color16;
+					*dstp ^= pat;
 					dstp++;
 				}
 			}

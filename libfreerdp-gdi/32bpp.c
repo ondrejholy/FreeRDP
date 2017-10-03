@@ -53,6 +53,13 @@ uint32 gdi_get_color_32bpp(HGDI_DC hdc, GDI_COLOR color)
 	return color32;
 }
 
+#define Data_Write_UINT32(_d, _v) do { \
+   *((uint8*) _d) = (_v) & 0xFF; \
+   *((uint8*) _d + 1) = ((_v) >> 8) & 0xFF; \
+   *((uint8*) _d + 2) = ((_v) >> 16) & 0xFF; \
+   *((uint8*) _d + 3) = ((_v) >> 24) & 0xFF; \
+} while (0)
+
 int FillRect_32bpp(HGDI_DC hdc, HGDI_RECT rect, HGDI_BRUSH hbr)
 {
 	int x, y;
@@ -76,7 +83,7 @@ int FillRect_32bpp(HGDI_DC hdc, HGDI_RECT rect, HGDI_BRUSH hbr)
 		{
 			for (x = 0; x < nWidth; x++)
 			{
-				*dstp = color32;
+				Data_Write_UINT32(dstp, color32);
 				dstp++;
 			}
 		}
@@ -390,11 +397,13 @@ static int BitBlt_DSPDxax_32bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int nWi
 	uint8* patp;
 	uint32 color32;
 	HGDI_BITMAP hSrcBmp;
+	uint32 pat;
 
 	/* D = (S & P) | (~S & D) */
 	/* DSPDxax, used to draw glyphs */
 
 	color32 = gdi_get_color_32bpp(hdcDest, hdcDest->textColor);
+	Data_Write_UINT32(&pat, color32);
 
 	hSrcBmp = (HGDI_BITMAP) hdcSrc->selectedObject;
 	srcp = hSrcBmp->data;
@@ -414,7 +423,7 @@ static int BitBlt_DSPDxax_32bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int nWi
 		{
 			for (x = 0; x < nWidth; x++)
 			{
-				patp = (uint8*) &color32;
+				patp = (uint8*) &pat;
 
 				*dstp = (*srcp & *patp) | (~(*srcp) & *dstp);
 				dstp++;
@@ -609,7 +618,7 @@ static int BitBlt_PATCOPY_32bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int nWi
 			{
 				for (x = 0; x < nWidth; x++)
 				{
-					*dstp = color32;
+					Data_Write_UINT32(dstp, color32);
 					dstp++;
 				}
 			}
@@ -642,10 +651,12 @@ static int BitBlt_PATINVERT_32bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int n
 	uint32* dstp;
 	uint32* patp;
 	uint32 color32;
-		
+	uint32 pat;
+
 	if (hdcDest->brush->style == GDI_BS_SOLID)
 	{
 		color32 = gdi_get_color_32bpp(hdcDest, hdcDest->brush->color);
+		Data_Write_UINT32(&pat, color32);
 
 		for (y = 0; y < nHeight; y++)
 		{
@@ -655,7 +666,7 @@ static int BitBlt_PATINVERT_32bpp(HGDI_DC hdcDest, int nXDest, int nYDest, int n
 			{
 				for (x = 0; x < nWidth; x++)
 				{
-					*dstp ^= color32;
+					*dstp ^= pat;
 					dstp++;
 				}
 			}
