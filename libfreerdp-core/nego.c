@@ -89,7 +89,10 @@ boolean nego_connect(rdpNego* nego)
 	if(nego->selected_protocol == PROTOCOL_RDP)
 	{
 		nego->transport->settings->encryption = true;
-		nego->transport->settings->encryption_method = ENCRYPTION_METHOD_40BIT | ENCRYPTION_METHOD_128BIT | ENCRYPTION_METHOD_FIPS;
+		if (FIPS_mode() != 1)
+			nego->transport->settings->encryption_method = ENCRYPTION_METHOD_40BIT | ENCRYPTION_METHOD_128BIT | ENCRYPTION_METHOD_FIPS;
+		else
+			nego->transport->settings->encryption_method = ENCRYPTION_METHOD_FIPS;
 		nego->transport->settings->encryption_level = ENCRYPTION_LEVEL_CLIENT_COMPATIBLE;
 	}
 

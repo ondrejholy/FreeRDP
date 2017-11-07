@@ -276,15 +276,19 @@ static boolean certificate_process_server_public_key(rdpCertificate* certificate
 
 static boolean certificate_process_server_public_signature(rdpCertificate* certificate, uint8* sigdata, int sigdatalen, STREAM* s, uint32 siglen)
 {
-	uint8 md5hash[CRYPTO_MD5_DIGEST_LENGTH];
+	/*uint8 md5hash[CRYPTO_MD5_DIGEST_LENGTH];*/
 	uint8 encsig[TSSK_KEY_LENGTH + 8];
 	uint8 sig[TSSK_KEY_LENGTH];
-	CryptoMd5 md5ctx;
+	/*CryptoMd5 md5ctx;*/
 	int i, sum;
 
-	md5ctx = crypto_md5_init();
+	/* Do not bother with validation of server proprietary certificate. The use of MD5 here is not allowed under FIPS. */
+	/* Since the validation is not protecting against anything since the private/public keys are well known and documented in */
+	/* MS-RDPBCGR section 5.3.3.1, we are not gaining any security by using MD5 for signature comparison. Rather then use MD5 */
+	/* here we just dont do the validation to avoid its use. Historically, freerdp has been ignoring a failed validation anyways. */
+	/*md5ctx = crypto_md5_init();
 	crypto_md5_update(md5ctx, sigdata, sigdatalen);
-	crypto_md5_final(md5ctx, md5hash);
+	crypto_md5_final(md5ctx, md5hash);*/
 
 	stream_read(s, encsig, siglen);
 
@@ -304,11 +308,12 @@ static boolean certificate_process_server_public_signature(rdpCertificate* certi
 	crypto_rsa_public_decrypt(encsig, siglen, TSSK_KEY_LENGTH, tssk_modulus, tssk_exponent, sig);
 
 	/* Verify signature. */
-	if (memcmp(md5hash, sig, sizeof(md5hash)) != 0)
+	/* Do not bother with validation of server proprietary certificate as described above. */
+	/*if (memcmp(md5hash, sig, sizeof(md5hash)) != 0)
 	{
 		printf("certificate_process_server_public_signature: invalid signature\n");
 		//return false;
-	}
+	}*/
 
 	/*
 	 * Verify rest of decrypted data:

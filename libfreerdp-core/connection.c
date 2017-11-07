@@ -65,6 +65,9 @@ boolean rdp_client_connect(rdpRdp* rdp)
 	uint32 selectedProtocol;
 	rdpSettings* settings = rdp->settings;
 
+	if (FIPS_mode() == 1)
+		settings->nla_security = false;
+
 	nego_init(rdp->nego);
 	nego_set_target(rdp->nego, settings->hostname, settings->port);
 	nego_set_cookie(rdp->nego, settings->username);

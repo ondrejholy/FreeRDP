@@ -54,12 +54,12 @@ struct crypto_sha1_struct
 
 struct crypto_md5_struct
 {
-	MD5_CTX md5_ctx;
+	EVP_MD_CTX md5_ctx;
 };
 
 struct crypto_rc4_struct
 {
-	RC4_KEY rc4_key;
+	EVP_CIPHER_CTX rc4_ctx;
 };
 
 struct crypto_des3_struct
@@ -86,11 +86,13 @@ void crypto_sha1_final(CryptoSha1 sha1, uint8* out_data);
 #define	CRYPTO_MD5_DIGEST_LENGTH	MD5_DIGEST_LENGTH
 typedef struct crypto_md5_struct* CryptoMd5;
 CryptoMd5 crypto_md5_init(void);
+CryptoMd5 crypto_md5_init_allow_fips(void);
 void crypto_md5_update(CryptoMd5 md5, const uint8* data, uint32 length);
 void crypto_md5_final(CryptoMd5 md5, uint8* out_data);
 
 typedef struct crypto_rc4_struct* CryptoRc4;
 CryptoRc4 crypto_rc4_init(const uint8* key, uint32 length);
+CryptoRc4 crypto_rc4_init_allow_fips(const uint8* key, uint32 length);
 void crypto_rc4(CryptoRc4 rc4, uint32 length, const uint8* in_data, uint8* out_data);
 void crypto_rc4_free(CryptoRc4 rc4);
 

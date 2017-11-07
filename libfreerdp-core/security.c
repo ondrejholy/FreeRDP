@@ -131,7 +131,10 @@ static void security_salted_hash(uint8* salt, uint8* input, int length, uint8* s
 	crypto_sha1_final(sha1, sha1_digest);
 
 	/* SaltedHash(Salt, Input, Salt1, Salt2) = MD5(S + SHA1_Digest) */
-	md5 = crypto_md5_init();
+	/* Allow FIPS override for use of MD5 here, this is used for creating hashes of the premaster_secret and master_secret */
+	/* used for RDP licensing as described in MS-RDPELE. This is for RDP licensing packets */
+	/* which will already be encrypted under FIPS, so the use of MD5 here is not for sensitive data protection. */
+	md5 = crypto_md5_init_allow_fips();
 	crypto_md5_update(md5, salt, 48); /* Salt (48 bytes) */
 	crypto_md5_update(md5, sha1_digest, sizeof(sha1_digest)); /* SHA1_Digest */
 	crypto_md5_final(md5, output);
@@ -182,10 +185,24 @@ void security_md5_16_32_32(uint8* in0, uint8* in1, uint8* in2, uint8* output)
 	crypto_md5_final(md5, output);
 }
 
+void security_md5_16_32_32_allow_fips(uint8* in0, uint8* in1, uint8* in2, uint8* output)
+{
+	CryptoMd5 md5;
+
+	md5 = crypto_md5_init_allow_fips();
+	crypto_md5_update(md5, in0, 16);
+	crypto_md5_update(md5, in1, 32);
+	crypto_md5_update(md5, in2, 32);
+	crypto_md5_final(md5, output);
+}
+
 void security_licensing_encryption_key(uint8* session_key_blob, uint8* client_random, uint8* server_random, uint8* output)
 {
 	/* LicensingEncryptionKey = MD5(Second128Bits(SessionKeyBlob) + ClientRandom + ServerRandom)) */
-	security_md5_16_32_32(&session_key_blob[16], client_random, server_random, output);
+	/* Allow FIPS use of MD5 here, this is just used for creating the licensing encryption key as described in MS-RDPELE. */
+	/* This is for RDP licensing packets which will already be encrypted under FIPS, so the use of MD5 here is not for */
+	/* sensitive data protection. */
+	security_md5_16_32_32_allow_fips(&session_key_blob[16], client_random, server_random, output);
 }
 
 void security_uint32_le(uint8* output, uint32 value)
@@ -216,7 +233,10 @@ void security_mac_data(uint8* mac_salt_key, uint8* data, uint32 length, uint8* o
 	crypto_sha1_final(sha1, sha1_digest);
 
 	/* MacData = MD5(MacSaltKey + pad2 + SHA1_Digest) */
-	md5 = crypto_md5_init();
+	/* Allow FIPS override for use of MD5 here, this is only used for creating the MACData field of the */
+	/* Client Platform Challenge Response packet (from MS-RDPELE section 2.2.2.5). This is for RDP licensing packets */
+	/* which will already be encrypted under FIPS, so the use of MD5 here is not for sensitive data protection. */
+	md5 = crypto_md5_init_allow_fips();
 	crypto_md5_update(md5, mac_salt_key, 16); /* MacSaltKey */
 	crypto_md5_update(md5, pad2, sizeof(pad2)); /* pad2 */
 	crypto_md5_update(md5, sha1_digest, sizeof(sha1_digest)); /* SHA1_Digest */
@@ -400,9 +420,12 @@ boolean security_establish_keys(uint8* client_random, rdpRdp* rdp)
 		security_md5_16_32_32(&session_key_blob[32], client_random,
 		    server_random, rdp->decrypt_key);
 	} else {
-		security_md5_16_32_32(&session_key_blob[16], client_random,
+		/* Allow FIPS use of MD5 here, this is just used for generation of the SessionKeyBlob as described in MS-RDPELE. */
+		/* This is for RDP licensing packets which will already be encrypted under FIPS, so the use of MD5 here is not */
+		/* for sensitive data protection. */
+		security_md5_16_32_32_allow_fips(&session_key_blob[16], client_random,
 		    server_random, rdp->decrypt_key);
-		security_md5_16_32_32(&session_key_blob[32], client_random,
+		security_md5_16_32_32_allow_fips(&session_key_blob[32], client_random,
 		    server_random, rdp->encrypt_key);
 	}
 

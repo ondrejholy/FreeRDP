@@ -37,34 +37,81 @@ void crypto_sha1_final(CryptoSha1 sha1, uint8* out_data)
 	xfree(sha1);
 }
 
-CryptoMd5 crypto_md5_init(void)
+static CryptoMd5 crypto_md5_init_internal(boolean override_fips)
 {
 	CryptoMd5 md5 = xmalloc(sizeof(*md5));
-	MD5_Init(&md5->md5_ctx);
+
+	EVP_MD_CTX_init(&md5->md5_ctx);
+	if (override_fips)
+		EVP_MD_CTX_set_flags(&md5->md5_ctx, EVP_MD_CTX_FLAG_NON_FIPS_ALLOW);
+	if (EVP_DigestInit_ex(&md5->md5_ctx, EVP_md5(), NULL) != 1)
+	{
+		printf("EVP_DigestInit_ex failed\n");
+		abort();
+	}
+
 	return md5;
+}
+
+CryptoMd5 crypto_md5_init(void)
+{
+	return crypto_md5_init_internal(false);
+}
+
+CryptoMd5 crypto_md5_init_allow_fips(void)
+{
+	return crypto_md5_init_internal(true);
 }
 
 void crypto_md5_update(CryptoMd5 md5, const uint8* data, uint32 length)
 {
-	MD5_Update(&md5->md5_ctx, data, length);
+	EVP_DigestUpdate(&md5->md5_ctx, data, length);
 }
 
 void crypto_md5_final(CryptoMd5 md5, uint8* out_data)
 {
-	MD5_Final(out_data, &md5->md5_ctx);
+	EVP_DigestFinal_ex(&md5->md5_ctx, out_data, NULL);
 	xfree(md5);
+}
+
+static CryptoRc4 crypto_rc4_init_internal(const uint8* key, uint32 length, boolean override_fips)
+{
+	CryptoRc4 rc4 = xmalloc(sizeof(*rc4));
+
+	EVP_CIPHER_CTX_init(&rc4->rc4_ctx);
+	if (EVP_EncryptInit_ex(&rc4->rc4_ctx, EVP_rc4(), NULL, NULL, NULL) != 1)
+	{
+		printf("EVP_EncryptInit_ex failed\n");
+		abort();
+	}
+
+	if (override_fips)
+		EVP_CIPHER_CTX_set_flags(&rc4->rc4_ctx, EVP_CIPH_FLAG_NON_FIPS_ALLOW);
+
+	EVP_CIPHER_CTX_set_key_length(&rc4->rc4_ctx, length);
+	if (EVP_EncryptInit_ex(&rc4->rc4_ctx, NULL, NULL, key, NULL) != 1)
+	{
+		printf("EVP_EncryptInit_ex failed\n");
+		abort();
+	}
+
+	return rc4;
 }
 
 CryptoRc4 crypto_rc4_init(const uint8* key, uint32 length)
 {
-	CryptoRc4 rc4 = xmalloc(sizeof(*rc4));
-	RC4_set_key(&rc4->rc4_key, length, key);
-	return rc4;
+	return crypto_rc4_init_internal(key, length, false);
+}
+
+CryptoRc4 crypto_rc4_init_allow_fips(const uint8* key, uint32 length)
+{
+	return crypto_rc4_init_internal(key, length, true);
 }
 
 void crypto_rc4(CryptoRc4 rc4, uint32 length, const uint8* in_data, uint8* out_data)
 {
-	RC4(&rc4->rc4_key, length, in_data, out_data);
+	int outputLength;
+	EVP_CipherUpdate(&rc4->rc4_ctx, out_data, &outputLength, in_data, length);
 }
 
 void crypto_rc4_free(CryptoRc4 rc4)

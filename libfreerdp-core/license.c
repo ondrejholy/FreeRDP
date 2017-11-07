@@ -295,7 +295,10 @@ void license_generate_hwid(rdpLicense* license)
 	memset(license->hwid, 0, HWID_LENGTH);
 	mac_address = license->rdp->transport->tcp->mac_address;
 
-	md5 = crypto_md5_init();
+	/* Allow FIPS override for use of MD5 here, really this does not have to be MD5 as we are just taking a MD5 hash of the 6 bytes of 0's(macAddress) */
+	/* and filling in the Data1-Data4 fields of the CLIENT_HARDWARE_ID structure(from MS-RDPELE section 2.2.2.3.1). This is for RDP licensing packets */
+	/* which will already be encrypted under FIPS, so the use of MD5 here is not for sensitive data protection. */
+	md5 = crypto_md5_init_allow_fips();
 	crypto_md5_update(md5, mac_address, 6);
 	crypto_md5_final(md5, &license->hwid[HWID_PLATFORM_ID_LENGTH]);
 }
@@ -354,7 +357,10 @@ void license_decrypt_platform_challenge(rdpLicense* license)
 	license->platform_challenge->length =
 			license->encrypted_platform_challenge->length;
 
-	rc4 = crypto_rc4_init(license->licensing_encryption_key, LICENSING_ENCRYPTION_KEY_LENGTH);
+	/* Allow FIPS override for use of RC4 here, this is only used for decrypting the MACData field of the */
+	/* Server Platform Challenge packet (from MS-RDPELE section 2.2.2.4). This is for RDP licensing packets */
+	/* which will already be encrypted under FIPS, so the use of RC4 here is not for sensitive data protection. */
+	rc4 = crypto_rc4_init_allow_fips(license->licensing_encryption_key, LICENSING_ENCRYPTION_KEY_LENGTH);
 
 	crypto_rc4(rc4, license->encrypted_platform_challenge->length,
 			license->encrypted_platform_challenge->data,
@@ -829,8 +835,11 @@ void license_send_platform_challenge_response_packet(rdpLicense* license)
 	security_mac_data(license->mac_salt_key, buffer, length, mac_data);
 	xfree(buffer);
 
+	/* Allow FIPS override for use of RC4 here, this is only used for encrypting the EncryptedHWID field of the */
+	/* Client Platform Challenge Response packet (from MS-RDPELE section 2.2.2.5). This is for RDP licensing packets */
+	/* which will already be encrypted under FIPS, so the use of RC4 here is not for sensitive data protection. */
 	buffer = (uint8*) xmalloc(HWID_LENGTH);
-	rc4 = crypto_rc4_init(license->licensing_encryption_key, LICENSING_ENCRYPTION_KEY_LENGTH);
+	rc4 = crypto_rc4_init_allow_fips(license->licensing_encryption_key, LICENSING_ENCRYPTION_KEY_LENGTH);
 	crypto_rc4(rc4, HWID_LENGTH, license->hwid, buffer);
 	crypto_rc4_free(rc4);
 
